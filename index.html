@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>teacher57 · LLM Evaluation &amp; Post-Training</title>
+<meta name="description" content="LLM evaluation and post-training engineer: τ-bench / BFCL work at Yandex, fine-tuning experiments on Qwen3, an agent failure analyzer, and on-device face recognition.">
+<style>
+  :root {
+    --bg: #fcfcfb; --surface: #ffffff; --surface-2: #f4f3f0; --border: #e4e3df;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #75746f;
+    --accent: #2a78d6; --accent-ink: #1c5cab; --bad: #d03b3b; --good: #0a7d0a;
+    --radius: 14px; --max: 1040px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --border: #2f2f2d;
+      --text: #f4f4f2; --text-2: #c3c2b7; --text-3: #9a9990;
+      --accent: #3987e5; --accent-ink: #86b6ef; --bad: #e66767; --good: #3fbf3f;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans);
+         -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent-ink); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+  /* nav */
+  nav { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 85%, transparent);
+        backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { font: 600 15px var(--mono); color: var(--text); }
+  nav ul { display: flex; gap: 22px; list-style: none; margin: 0; padding: 0; font-size: 14px; }
+  nav ul a { color: var(--text-2); }
+
+  /* hero */
+  header.hero { padding-top: 88px; padding-bottom: 56px; }
+  .eyebrow { font: 500 13px var(--mono); color: var(--accent-ink); letter-spacing: .02em; margin: 0 0 14px; }
+  h1 { font-size: clamp(34px, 5.5vw, 54px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 20px; max-width: 16ch; }
+  .lede { font-size: 19px; color: var(--text-2); max-width: 60ch; margin: 0 0 28px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 32px; padding: 0; list-style: none; }
+  .chips li { font: 13px var(--mono); color: var(--text-2); background: var(--surface-2);
+              border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px;
+         border-radius: 10px; padding: 10px 18px; border: 1px solid var(--border); color: var(--text);
+         background: var(--surface); }
+  .btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* sections */
+  section { padding: 56px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 13px; font-family: var(--mono); font-weight: 500; text-transform: uppercase;
+       letter-spacing: .08em; color: var(--text-3); margin: 0 0 28px; }
+
+  /* project cards */
+  .project { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+             padding: 32px; margin-bottom: 24px; }
+  .project h3 { font-size: 26px; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 6px; }
+  .project .sub { color: var(--text-2); margin: 0 0 20px; font-size: 17px; }
+  .project p { margin: 0 0 14px; max-width: 72ch; }
+  .tag { display: inline-block; font: 12px var(--mono); color: var(--text-3); margin-bottom: 10px; }
+  .links { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; font-weight: 600; font-size: 15px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  /* stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0; }
+  .stat { background: var(--surface-2); border-radius: 10px; padding: 16px 18px; }
+  .stat .num { font: 600 28px/1.1 var(--sans); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat .num .arrow { color: var(--text-3); font-weight: 400; margin: 0 4px; }
+  .stat .num .bad { color: var(--bad); }
+  .stat .label { font-size: 13px; color: var(--text-2); margin-top: 6px; line-height: 1.4; }
+
+  ul.points { margin: 0 0 6px; padding-left: 20px; max-width: 72ch; }
+  ul.points li { margin-bottom: 6px; }
+  code { font: 0.88em var(--mono); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+
+  figure { margin: 22px 0 6px; }
+  figure img { width: 100%; height: auto; display: block; border-radius: 10px; border: 1px solid var(--border); }
+  figcaption { font-size: 13px; color: var(--text-3); margin-top: 8px; }
+
+  /* experience */
+  .job { padding: 0 0 28px; margin: 0 0 28px; border-bottom: 1px solid var(--border); }
+  .job-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .job h3 { font-size: 21px; margin: 0; letter-spacing: -0.01em; }
+  .job h3 .at { font-weight: 400; color: var(--text-2); }
+  .job .stats { margin: 14px 0 18px; }
+  .when { font: 13px var(--mono); color: var(--text-3); white-space: nowrap; }
+  .edu p { margin: 6px 0 0; }
+
+  /* principles */
+  .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .principles h3 { font-size: 17px; margin: 0 0 6px; }
+  .principles p { margin: 0; color: var(--text-2); font-size: 15px; }
+
+  /* contact */
+  .contact p { color: var(--text-2); max-width: 56ch; margin: 0 0 22px; }
+  .contact .email-line { font: 600 clamp(18px, 3.2vw, 24px) var(--mono); color: var(--text); overflow-wrap: anywhere; }
+  footer { padding: 36px 0 48px; color: var(--text-3); font-size: 13px; border-top: 1px solid var(--border); }
+
+  @media (max-width: 760px) {
+    nav ul { gap: 14px; }
+    nav ul li.hide-sm { display: none; }
+    header.hero { padding-top: 56px; padding-bottom: 40px; }
+    .project { padding: 22px 18px; }
+    .stats, .grid-2, .principles { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn:hover { transform: none; } }
+</style>
+</head>
+<body>
+
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="logo" href="#top">teacher57</a>
+    <ul>
+      <li><a href="#experience">Experience</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li class="hide-sm"><a href="#approach">Approach</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main id="top">
+  <header class="hero wrap">
+    <p class="eyebrow">LLM Evaluation &amp; Post-Training Engineer</p>
+    <h1>I train tool-calling agents, and measure whether it actually worked.</h1>
+    <p class="lede">
+      I work on the <strong>YandexGPT</strong> team on LLM evaluation, error analysis and
+      post-training (SFT, DPO/GRPO), across models from 7B to 235B parameters. There I raised
+      Pass@1 on <strong>TAU</strong> by 20 points and <strong>BFCL</strong> by 15 points through
+      systematic error analysis and better training data. On my own time I fine-tune open models
+      on τ-bench, break them, find out why, and build tools that keep the measurements honest.
+    </p>
+    <ul class="chips" aria-label="Skills">
+      <li>Python</li><li>PyTorch</li><li>SQL / YQL</li><li>Pandas</li>
+      <li>LLM evaluation: BFCL, TAU, TAU2</li><li>SFT</li><li>DPO / GRPO</li><li>LoRA / QLoRA</li>
+      <li>Distillation</li><li>MCP</li><li>vLLM</li><li>Unsloth</li><li>Error analysis</li><li>OpenCV</li>
+    </ul>
+    <div class="cta">
+      <a class="btn primary" href="#experience">Experience</a>
+      <a class="btn" href="#projects">Projects</a>
+      <a class="btn" href="https://github.com/teacher57">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <section id="experience">
+    <div class="wrap">
+      <h2>Experience</h2>
+
+      <article class="job">
+        <div class="job-head">
+          <h3>Analyst-Developer <span class="at">· Yandex, Agents &amp; Code (YandexGPT)</span></h3>
+          <span class="when">2024 – present</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="num">+20 pp</div><div class="label">Pass@1 on the TAU benchmark</div></div>
+          <div class="stat"><div class="num">+15 pp</div><div class="label">on BFCL (function calling)</div></div>
+          <div class="stat"><div class="num">100k+</div><div class="label">dialogues in datasets I built, up to 50 turns each</div></div>
+        </div>
+        <ul class="points">
+          <li>Raised TAU and BFCL scores through systematic model error analysis and targeted dataset improvements.</li>
+          <li>Ran evaluation and post-training (SFT, DPO/GRPO) on models from 7B to 235B parameters, mainly the Qwen family, including the Qwen3-30B-A3B MoE.</li>
+          <li>Analyzed LLM performance on BFCL, TAU and TAU2: found the root causes of errors and prioritized fixes.</li>
+          <li>Built single- and multi-turn dialogue datasets for the Alice assistant's alarm scenarios, including math and time-calculation reasoning.</li>
+          <li>Built an MCP (Model Context Protocol) tool that lets Alice actually set alarms, connecting dialogue understanding to the action.</li>
+          <li>Designed and ran 20+ ML experiments comparing training approaches; translated and presented research papers to the team.</li>
+        </ul>
+      </article>
+
+      <article class="job">
+        <div class="job-head">
+          <h3>Computer Science Teacher <span class="at">· School 57, Moscow</span></h3>
+          <span class="when">2021 – 2025</span>
+        </div>
+        <ul class="points">
+          <li>Taught computer science to grades 8–11 and prepared students for CS olympiads.</li>
+          <li>Explaining algorithms and programming clearly to a technical audience, a skill I still use every day.</li>
+        </ul>
+      </article>
+
+      <article class="job">
+        <div class="job-head">
+          <h3>1C Analyst <span class="at">· RG-Soft</span></h3>
+          <span class="when">2022 – 2024</span>
+        </div>
+        <ul class="points">
+          <li>Analyzed clients' business processes and requirements; designed automation solutions in 1C.</li>
+        </ul>
+      </article>
+
+      <div class="edu">
+        <span class="when">Education</span>
+        <p><strong>School 57, Moscow</strong> · Secondary education, advanced studies in computer science</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <div class="wrap">
+      <h2>Projects</h2>
+
+      <!-- flagship -->
+      <article class="project">
+        <span class="tag">Fine-tuning · RL · Qwen3-14B</span>
+        <h3>A fine-tuning attempt that quietly broke everything</h3>
+        <p class="sub">Improving Qwen3-14B on τ-bench retail with SFT, GRPO and distillation, including the runs that failed.</p>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="num">45.2%<span class="arrow">→</span><span class="bad">2.6%</span></div>
+            <div class="label">Pass rate after fine-tuning on 422 <em>passing</em> conversations, while training loss looked fine</div>
+          </div>
+          <div class="stat">
+            <div class="num">98%</div>
+            <div class="label">of training examples authenticated at the exact same message index: the shortcut the model learned</div>
+          </div>
+          <div class="stat">
+            <div class="num">25.4%<span class="arrow">→</span>35.1%</div>
+            <div class="label">pass^2 on τ²-bench retail after rebuilding the teacher data around two habits</div>
+          </div>
+        </div>
+
+        <p>
+          The model didn't memorize answers. It learned a <strong>positional habit</strong>: call the
+          authentication tool at message #4, with made-up placeholder values if the customer hadn't
+          given their details yet. I traced the collapse to the training set's shape, then tried three
+          fixes: grounded data augmentation, GRPO with τ-bench's own reward, and distillation from
+          Qwen3-32B.
+        </p>
+        <ul class="points">
+          <li>GRPO's own eval probe got <em>worse</em> with training (0.55 → 0.35 → 0.30), confirmed on an independent rerun.</li>
+          <li>A gentler run didn't collapse, but a 115-task, two-trial test couldn't tell it from the starting adapter (p = 0.57). Reported as a null result.</li>
+          <li>Failure analysis of the distilled model pointed to two habits (open every order, confirm every change), which became the final dataset.</li>
+        </ul>
+        <div class="links">
+          <a href="https://github.com/teacher57/qwen3-14b-tau-train">Repo &amp; full write-up →</a>
+          <a href="https://huggingface.co/datasets/teacher57/tau-retail-distillation">Dataset on Hugging Face →</a>
+        </div>
+      </article>
+
+      <article class="project">
+        <span class="tag">Evaluation tooling · Python, no dependencies</span>
+        <h3>agentfail</h3>
+        <p class="sub">Why did my agent fail, and did my change actually help?</p>
+        <p>
+          A rule-based failure analyzer for τ²-bench results. It labels every failed conversation with
+          a root cause and evidence (wrong arguments, missing or extra writes, made-up values, unneeded
+          hand-offs to a human), and separates <strong>agent</strong> mistakes from mistakes by the
+          simulated customer. It compares two runs task by task with permutation tests, bootstrap
+          intervals and pass^k, and has a CI gate that fails a merge only on a significant regression.
+        </p>
+        <figure>
+          <a href="assets/agentfail-chart.svg" aria-label="Open the chart full size"><img src="assets/agentfail-chart.svg" width="760" height="436" loading="lazy"
+               alt="Primary failure causes for the base and augmented Qwen3-14B runs. Wrong arguments are the largest bucket at 21.9% for both. Timeouts rise from 0.4% to 8.3% (p<0.001), the only significant change."></a>
+          <figcaption>Run on the Qwen3-14B models from the project above: the +4.4-point pass-rate gain isn't significant, but the timeout increase is.</figcaption>
+        </figure>
+        <div class="links">
+          <a href="https://github.com/teacher57/agentfail">Repo →</a>
+        </div>
+      </article>
+
+      <article class="project">
+        <span class="tag">Computer vision · edge devices</span>
+        <h3>facerec</h3>
+        <p class="sub">Find faces, remember people, and recognize them live from a camera, on a Mac or a Raspberry Pi.</p>
+        <p>
+          A small command-line app built on OpenCV: <strong>YuNet</strong> detects faces,
+          <strong>SFace</strong> turns each one into 128 numbers, and those are matched against the
+          people you've enrolled. Face data stays on the device and is never committed.
+        </p>
+        <div class="links">
+          <a href="https://github.com/teacher57/facerec">Repo →</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="approach">
+    <div class="wrap">
+      <h2>How I work</h2>
+      <div class="principles">
+        <div>
+          <h3>Publish the failures</h3>
+          <p>A run that went from 45% to 2.6% taught more than any success. The write-ups keep the null results and the dead ends.</p>
+        </div>
+        <div>
+          <h3>Significance before celebration</h3>
+          <p>Paired tests, confidence intervals and pass^k, so a +4-point gain on 114 tasks isn't mistaken for progress.</p>
+        </div>
+        <div>
+          <h3>Read the transcripts</h3>
+          <p>Aggregate scores hide the mechanism. The root causes came from reading what the agent actually did.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="contact">
+    <div class="wrap">
+      <h2>Contact</h2>
+      <p>Open to roles in LLM evaluation and post-training. Interested in my work or any of these projects? Get in touch.</p>
+      <p class="email-line"><a id="email-text"></a>
+        <noscript>kenyafurze [at] gmail [dot] com</noscript></p>
+      <div class="cta">
+        <a class="btn primary" id="email-btn" hidden>Email me</a>
+        <a class="btn" href="https://github.com/teacher57">GitHub</a>
+        <a class="btn" href="https://huggingface.co/teacher57">Hugging Face</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">© 2026 teacher57 · Built as a static page, hosted on GitHub Pages.</div>
+</footer>
+
+<script>
+  // Email is assembled at runtime so simple scrapers don't find it in the HTML.
+  // Fill in both parts to show the button, e.g. ["name", "example.com"].
+  const EMAIL = ["kenyafurze", "gmail.com"];
+  if (EMAIL[0] && EMAIL[1]) {
+    const btn = document.getElementById("email-btn");
+    btn.href = "mailto:" + EMAIL.join("@");
+    btn.hidden = false;
+    const text = document.getElementById("email-text");
+    text.href = btn.href;
+    text.textContent = EMAIL.join("@");
+  }
+</script>
+</body>
+</html>
