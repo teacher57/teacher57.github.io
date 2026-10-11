@@ -87,6 +87,13 @@
   figure.photo img { width: auto; max-width: 100%; }
   figcaption { font-size: 13px; color: var(--text-3); margin-top: 8px; }
 
+  /* live tree evolution */
+  canvas.trees { display: block; width: 100%; aspect-ratio: 256 / 100; border-radius: 10px;
+                 border: 1px solid var(--border); background: #0f1117; }
+  .trees-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+               font-family: var(--mono); }
+  .btn.small { font: 600 12px var(--mono); padding: 4px 10px; border-radius: 8px; cursor: pointer; }
+
   /* experience */
   .job { padding: 0 0 28px; margin: 0 0 28px; border-bottom: 1px solid var(--border); }
   .job-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -293,6 +300,32 @@
           <a href="https://github.com/teacher57/facerec">Repo →</a>
         </div>
       </article>
+
+      <article class="project">
+        <span class="tag">Artificial life · genetic algorithm · JavaScript</span>
+        <h3>Digital tree evolution</h3>
+        <p class="sub">Trees grow, compete for sunlight, drop seeds and mutate. This one is running live, right now.</p>
+        <p>
+          Each tree's genome is a 16×4 table: one row per gene, one number per direction (left, up,
+          right, down). A number below 16 means "grow a branch there and give it that gene". Sunlight
+          reaches three cells deep and is stronger higher up, every cell costs energy, and when a tree
+          dies of old age its growing tips fall as seeds, one in four with a mutation. There's no fitness
+          function: the shapes that catch enough light to leave seeds take over the field.
+        </p>
+        <figure>
+          <canvas id="trees-canvas" class="trees" aria-label="Live simulation of evolving trees growing from the ground"></canvas>
+          <figcaption class="trees-bar">
+            <span id="trees-stats">starting…</span>
+            <button type="button" id="trees-speed" class="btn small">Speed 1×</button>
+          </figcaption>
+        </figure>
+        <p>
+          Ported to Python and then to JavaScript from
+          <a href="https://dzen.ru/a/XmMwgmmclhNUOwU2">TechnoShaman's Pixilang project</a>, following the
+          original source rule for rule. It starts from trees evolved over about 1,300 generations on
+          my machine, with colors hashed from the genome, so trees with the same color share the same genes.
+        </p>
+      </article>
     </div>
   </section>
 
@@ -349,5 +382,6 @@
     text.textContent = EMAIL.join("@");
   }
 </script>
+<script src="assets/tree-evolution.js" defer></script>
 </body>
 </html>
