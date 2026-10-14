@@ -224,6 +224,49 @@
 
       <!-- flagship -->
       <article class="project">
+        <span class="tag">Environment design · RL · Qwen3.8-27B · BFCL</span>
+        <h3>Teaching a model to leave the brake pressed</h3>
+        <p class="sub">Finding why Qwen3.8-27B fails BFCL multi-turn, building a small environment for each failure, and training it with SFT + GRPO.</p>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="num">60.2%<span class="arrow">→</span>66.2%</div>
+            <div class="label">BFCL v4 multi-turn accuracy, paired over the same 800 conversations (p = 0.0001)</div>
+          </div>
+          <div class="stat">
+            <div class="num">39<span class="arrow">→</span>17</div>
+            <div class="label">conversations where the model released the car's brake: a habit trained on files, never on the car</div>
+          </div>
+          <div class="stat">
+            <div class="num">112<span class="arrow">→</span>147</div>
+            <div class="label">of 160 held-out "brake" tasks passed after 40 GRPO steps (p &lt; 0.001)</div>
+          </div>
+        </div>
+
+        <p>
+          I read every BFCL multi-turn conversation that ended in the wrong state and grouped them by root
+          cause, without an LLM judge. The biggest one: asked to start the engine, the model presses the brake
+          (the car refuses otherwise), starts it, and then <strong>releases the brake</strong>, an extra step
+          nobody asked for. I rebuilt that pattern in a small in-memory file system: zip archives that must be
+          unzipped, locked files, a maintenance mode that must be switched on. Then I trained the model with GRPO
+          to do the task and leave the precondition as it is.
+        </p>
+        <ul class="points">
+          <li>A first GRPO run on generic file-system failures moved BFCL only +2.9 points (p = 0.06), peaked mid-way, and made the brake habit <em>worse</em> (39 → 45).</li>
+          <li>The targeted run fixed it on BFCL's car, which it never saw in training, and lifted every multi-turn category; long contexts recovered from the first run's dip.</li>
+          <li>Two of my own bugs, caught and reported: a test task the model solved through a loophole in my archive format, and 20 training tasks with ambiguous wording.</li>
+        </ul>
+        <figure>
+          <a href="assets/bfcl-failure-causes.png" aria-label="Open the chart full size"><img src="assets/bfcl-failure-causes.png" width="760" height="371" loading="lazy"
+               alt="BFCL multi-turn failure causes for the base model, the first GRPO run and the second (step 40). Releasing the brake falls from 39 to 45 to 17; guessing missing information falls from 32 to 23; rewriting the user's text rises slightly, from 36 to 41."></a>
+          <figcaption>Failure causes on BFCL multi-turn (fewer is better). Rewriting the user's exact text is untouched so far: the next target.</figcaption>
+        </figure>
+        <div class="links">
+          <a href="https://github.com/teacher57/qwen3.8-27b-bfcl-train">Repo &amp; full write-up →</a>
+        </div>
+      </article>
+
+      <article class="project">
         <span class="tag">Fine-tuning · RL · Qwen3-14B</span>
         <h3>A fine-tuning attempt that quietly broke everything</h3>
         <p class="sub">Improving Qwen3-14B on τ-bench retail with SFT, GRPO and distillation, including the runs that failed.</p>
