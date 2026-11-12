@@ -3,8 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>teacher57 · LLM Evaluation &amp; Post-Training</title>
+<title>Grigorii Gumerov · AI Engineer</title>
 <meta name="description" content="LLM evaluation and post-training engineer: τ-bench / BFCL work at Yandex, fine-tuning experiments on Qwen3, an agent failure analyzer, and on-device face recognition.">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://teacher57.github.io/">
+<meta property="og:title" content="Grigorii Gumerov · AI Engineer">
+<meta property="og:description" content="I train tool-calling agents, and measure whether it actually worked.">
+<meta property="og:image" content="https://teacher57.github.io/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grigorii Gumerov: I train tool-calling agents, and measure whether it actually worked.">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --bg: #fcfcfb; --surface: #ffffff; --surface-2: #f4f3f0; --border: #e4e3df;
@@ -41,6 +54,11 @@
 
   /* hero */
   header.hero { padding-top: 88px; padding-bottom: 56px; }
+  .hero-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; align-items: center;
+              margin-bottom: 20px; }
+  .hero-top h1 { margin-bottom: 0; }
+  .avatar { width: 240px; height: 240px; border-radius: 50%; object-fit: cover; display: block;
+            border: 1px solid var(--border); }
   .eyebrow { font: 500 13px var(--mono); color: var(--accent-ink); letter-spacing: .02em; margin: 0 0 14px; }
   h1 { font-size: clamp(34px, 5.5vw, 54px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 20px; max-width: 16ch; }
   .lede { font-size: 19px; color: var(--text-2); max-width: 60ch; margin: 0 0 28px; }
@@ -116,7 +134,9 @@
   @media (max-width: 760px) {
     nav ul { gap: 14px; }
     nav ul li.hide-sm { display: none; }
-    header.hero { padding-top: 56px; padding-bottom: 40px; }
+    header.hero { padding-top: 40px; padding-bottom: 40px; }
+    .hero-top { grid-template-columns: 1fr; gap: 24px; }
+    .avatar { width: 128px; height: 128px; order: -1; }
     .project { padding: 22px 18px; }
     .stats, .grid-2, .principles { grid-template-columns: 1fr; }
   }
@@ -139,8 +159,13 @@
 
 <main id="top">
   <header class="hero wrap">
-    <p class="eyebrow">LLM Evaluation &amp; Post-Training Engineer</p>
-    <h1>I train tool-calling agents, and measure whether it actually worked.</h1>
+    <div class="hero-top">
+      <div>
+        <p class="eyebrow">LLM Evaluation &amp; Post-Training Engineer</p>
+        <h1>I train tool-calling agents, and measure whether it actually worked.</h1>
+      </div>
+      <img class="avatar" src="assets/photo.jpg" width="520" height="520" alt="Grigorii Gumerov">
+    </div>
     <p class="lede">
       I work on LLM evaluation, error analysis and post-training (SFT, DPO/GRPO). At
       <strong>Yandex</strong> I raised <strong>TAU</strong> and <strong>BFCL</strong> scores by 20
@@ -153,8 +178,6 @@
       <li>Distillation</li><li>MCP</li><li>vLLM</li><li>Unsloth</li><li>Error analysis</li><li>OpenCV</li>
     </ul>
     <div class="cta">
-      <a class="btn primary" href="#experience">Experience</a>
-      <a class="btn" href="#projects">Projects</a>
       <a class="btn" href="CV_Gumerov.pdf" download>
         <span aria-hidden="true">⬇</span>
         Download CV
