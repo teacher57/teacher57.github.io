@@ -30,27 +30,55 @@ $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     [Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) { throw "Run PowerShell as Administrator (right click -> Run as administrator) and start again." }
 
-function Have-Winget {
-    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-        throw "winget not found: install 'App Installer' from Microsoft Store, then run this again."
-    }
-}
-function Winget-Install($id, $what) {
-    if ($CheckOnly) { Todo "install $what (winget $id)"; return }
-    Have-Winget
-    Say "   installing $what ..."
-    winget install --id $id --exact --silent --accept-package-agreements --accept-source-agreements | Out-Host
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne -1978335189) {  # -1978335189 = already installed
-        throw "winget could not install $what (code $LASTEXITCODE). Update 'App Installer' in Microsoft Store and retry."
-    }
+function Refresh-Path {
     $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
-    Done "$what installed"
+}
+
+# winget first (id matched without case: --exact is case-sensitive and ids differ in case between winget versions);
+# if winget is missing, old or can't find the package -> the vendor's official installer ($fallback scriptblock).
+function Install-App($id, $what, $fallback) {
+    if ($CheckOnly) { Todo "install $what"; return }
+    Say "   installing $what ..."
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        winget install --id $id --silent --accept-package-agreements --accept-source-agreements --source winget | Out-Host
+        if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) { Refresh-Path; Done "$what installed (winget)"; return }
+        Say "   winget could not install $what (code $LASTEXITCODE) - using the official installer" Yellow
+    } else {
+        Say "   no winget - using the official installer" Yellow
+    }
+    & $fallback
+    Refresh-Path
+    Done "$what installed (official installer)"
+}
+
+function Download($url, $file) {
+    $path = Join-Path $env:TEMP $file
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri $url -OutFile $path -UseBasicParsing
+    return $path
+}
+
+$TailscaleOfficial = {
+    $exe = Download "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" "tailscale-setup-latest.exe"
+    $p = Start-Process -FilePath $exe -ArgumentList "/quiet" -Wait -PassThru
+    Remove-Item $exe -Force -ErrorAction SilentlyContinue
+    if ($p.ExitCode -ne 0) { throw "Tailscale installer failed (code $($p.ExitCode))" }
+}
+
+$NodeOfficial = {
+    $lts = (Invoke-RestMethod -Uri "https://nodejs.org/dist/index.json" -UseBasicParsing) |
+        Where-Object { $_.lts -and [int]($_.version.TrimStart("v").Split(".")[0]) -ge 20 } | Select-Object -First 1
+    if (-not $lts) { throw "could not find a Node.js LTS release on nodejs.org" }
+    $msi = Download "https://nodejs.org/dist/$($lts.version)/node-$($lts.version)-x64.msi" "node-lts-x64.msi"
+    $p = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
+    Remove-Item $msi -Force -ErrorAction SilentlyContinue
+    if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "Node.js installer failed (code $($p.ExitCode))" }
 }
 
 # ---------------------------------------------------------------- 1. Tailscale
 Step "Tailscale"
 $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
-if (Test-Path $ts) { Skip "Tailscale ($ts)" } else { Winget-Install "Tailscale.Tailscale" "Tailscale" }
+if (Test-Path $ts) { Skip "Tailscale ($ts)" } else { Install-App "Tailscale.Tailscale" "Tailscale" $TailscaleOfficial }
 if (Test-Path $ts) {
     $svc = Get-Service Tailscale -ErrorAction SilentlyContinue
     if ($svc -and $svc.StartType -ne "Automatic") {
@@ -129,7 +157,7 @@ if ($node) {
 }
 if (-not $nodeOk) {
     if ($node) { Say "   an older Node.js is installed; upgrading it" Yellow }
-    Winget-Install "OpenJS.NodeJS.LTS" "Node.js LTS"
+    Install-App "OpenJS.NodeJS.LTS" "Node.js LTS" $NodeOfficial
 }
 
 # ---------------------------------------------------------------- summary for deploy.sh
