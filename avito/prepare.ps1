@@ -50,7 +50,7 @@ function Winget-Install($id, $what) {
 # ---------------------------------------------------------------- 1. Tailscale
 Step "Tailscale"
 $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
-if (Test-Path $ts) { Skip "Tailscale ($ts)" } else { Winget-Install "tailscale.tailscale" "Tailscale" }
+if (Test-Path $ts) { Skip "Tailscale ($ts)" } else { Winget-Install "Tailscale.Tailscale" "Tailscale" }
 if (Test-Path $ts) {
     $svc = Get-Service Tailscale -ErrorAction SilentlyContinue
     if ($svc -and $svc.StartType -ne "Automatic") {
