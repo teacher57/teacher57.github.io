@@ -2,18 +2,19 @@
 # Installs ONLY what is missing: Tailscale, OpenSSH Server, Node.js 20+. Anything already installed is left as it is.
 # Then: lets the admin's Mac in over SSH (adds its public key), joins Tailscale, prints what deploy.sh needs.
 #
-# Run in PowerShell **as Administrator**. A CLIENT's PC joins Tailscale only with a one-time auth key tagged tag:client
-# (the admin makes it in the Tailscale admin console; such a PC can't reach the admin's or other clients' devices):
-#   & ([scriptblock]::Create((irm https://teacher57.github.io/avito/prepare.ps1))) -AuthKey tskey-auth-...
-# The admin's OWN PC (browser sign-in to the admin's account, sees all his devices):
-#   & ([scriptblock]::Create((irm https://teacher57.github.io/avito/prepare.ps1))) -OwnDevice
-# Only report what is installed, change nothing:
-#   & ([scriptblock]::Create((irm https://teacher57.github.io/avito/prepare.ps1))) -CheckOnly
-# Other: -PublicKey "ssh-ed25519 AAAA... name" = a different admin key. A downloaded file runs the same: .\prepare.ps1 -AuthKey ...
-# Safe to run again. Nothing here is secret: the key below is a PUBLIC key.
+# Every client has his OWN Tailscale network (his own free/paid Tailscale account). Run in PowerShell **as
+# Administrator** on the client's PC; a browser opens -> the client signs in to HIS Tailscale account:
+#   irm https://teacher57.github.io/avito/prepare.ps1 | iex
+# Then the client shares this PC with the admin (Tailscale admin console -> Machines -> this PC -> Share -> the
+# admin's e-mail). A shared PC can't reach the admin's devices; the admin can reach it.
+# Options (run as: & ([scriptblock]::Create((irm https://teacher57.github.io/avito/prepare.ps1))) -Option ...):
+#   -AuthKey tskey-auth-...   join with an auth key from the client's Tailscale (no browser)
+#   -CheckOnly                only report what is installed, change nothing
+#   -PublicKey "ssh-ed25519 AAAA... name"   a different admin key
+# A downloaded file runs the same: .\prepare.ps1 -CheckOnly
 param(
     [string]$AuthKey = "",
-    [switch]$OwnDevice,
+    [switch]$OwnDevice,   # kept for old instructions: same as the default now
     [string]$PublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMV6KnZUz+NL8bKoO7mqv7na4fUmkrvQ67gqLN0J6IZs admin-mac",
     [switch]$CheckOnly
 )
@@ -86,32 +87,17 @@ if (Test-Path $ts) {
     }
     $st = $null
     try { $st = & $ts status --json 2>$null | ConvertFrom-Json } catch {}
-    $tags = @(); if ($st -and $st.Self.Tags) { $tags = @($st.Self.Tags) }
     if ($st -and $st.BackendState -eq "Running") {
-        Skip ("this PC is in Tailscale" + $(if ($tags) { " (tags: $($tags -join ', '))" } else { " (as a user's device, no tag)" }))
-        if (-not $OwnDevice -and -not ($tags -contains "tag:client")) {
-            Say "   WARNING: a client's PC must be in Tailscale with tag:client, otherwise it can reach the admin's devices." Yellow
-            Say "   Fix: run again with -AuthKey tskey-... (a one-time key with tag:client) - it re-joins the PC with the tag." Yellow
-            if ($AuthKey -and -not $CheckOnly) {
-                & $ts up --unattended --force-reauth --auth-key=$AuthKey
-                if ($LASTEXITCODE -ne 0) { throw "tailscale up failed" }
-                Done "re-joined Tailscale with the key's tag"
-            }
-        }
+        Skip "this PC is in Tailscale ($($st.CurrentTailnet.Name))"
     } elseif ($CheckOnly) {
         Todo "join Tailscale (state: $(if ($st) { $st.BackendState } else { 'unknown' }))"
-    } elseif ($AuthKey) {
-        & $ts up --unattended --auth-key=$AuthKey
-        if ($LASTEXITCODE -ne 0) { throw "tailscale up failed (is the key one-time and not used/expired?)" }
-        Done "joined Tailscale with the key (works without a signed-in user)"
-    } elseif ($OwnDevice) {
-        Say "   joining Tailscale: a browser window opens - sign in with the admin's Tailscale account" Yellow
-        & $ts up --unattended
-        if ($LASTEXITCODE -ne 0) { throw "tailscale up failed" }
-        Done "joined Tailscale as the admin's own device"
     } else {
-        throw ("Tailscale: a client's PC needs a one-time key with tag:client. Ask the admin for it and run:`n" +
-               "  & ([scriptblock]::Create((irm https://teacher57.github.io/avito/prepare.ps1))) -AuthKey tskey-auth-...")
+        $up = @("up", "--unattended")
+        if ($AuthKey) { $up += "--auth-key=$AuthKey" }
+        else { Say "   joining Tailscale: a browser window opens - sign in to YOUR (the shop's) Tailscale account" Yellow }
+        & $ts @up
+        if ($LASTEXITCODE -ne 0) { throw "tailscale up failed$(if ($AuthKey) { ' (is the key valid and not used/expired?)' })" }
+        Done "joined Tailscale (works without a signed-in user)"
     }
 }
 
@@ -174,4 +160,5 @@ Say "   profile:  $env:USERPROFILE"
 Say "   computer: $env:COMPUTERNAME"
 Say "   tailscale: $ip  $dns"
 Say ""
-Say "   On the Mac:  ./deploy.sh $user@$ip --bot --hub" Green
+Say "   Next: Tailscale admin console (https://login.tailscale.com/admin/machines) -> this PC -> Share -> admin's e-mail" Yellow
+Say "   Then on the admin's Mac:  ./deploy.sh $user@$ip --bot --hub" Green
