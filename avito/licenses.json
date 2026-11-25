@@ -1,5 +1,9 @@
 {
  "format": "bot-bro-licenses",
  "version": 2,
- "licenses": {}
+ "licenses": {
+  "6ea73a5324a0a945566a666332de392a52eca559fee2ddd6667804aab799fe42": {
+   "until": "2027-03-01"
+  }
+ }
 }

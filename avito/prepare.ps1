@@ -160,5 +160,26 @@ Say "   profile:  $env:USERPROFILE"
 Say "   computer: $env:COMPUTERNAME"
 Say "   tailscale: $ip  $dns"
 Say ""
-Say "   Next: Tailscale admin console (https://login.tailscale.com/admin/machines) -> this PC -> Share -> admin's e-mail" Yellow
-Say "   Then on the admin's Mac:  ./deploy.sh $user@$ip --bot --hub" Green
+# BOT BRO license device code: the same as bot/bot_license.py device_code()
+#   = first 20 hex of SHA-256("bot-bro-device:" + MachineGuid in lower case), upper case, groups of 5.
+$device = ""
+try {
+    $guid = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Cryptography" -Name MachineGuid).MachineGuid.Trim().ToLower()
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $hex = -join ($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes("bot-bro-device:" + $guid)) | ForEach-Object { $_.ToString("x2") })
+    $h = $hex.Substring(0, 20).ToUpper()
+    $device = ($h.Substring(0, 5), $h.Substring(5, 5), $h.Substring(10, 5), $h.Substring(15, 5)) -join "-"
+} catch { $device = "(could not read MachineGuid)" }
+Say ""
+Say "   BOT BRO license device code:  $device" Green
+Say ""
+Say "   NEXT - share this PC with the admin (so he can install over SSH):" Yellow
+Say "     1. the Tailscale page 'Machines' opens now (sign in to YOUR Tailscale account if asked)" Yellow
+Say "     2. find '$($env:COMPUTERNAME.ToLower())' -> the '...' menu on its row -> Share" Yellow
+Say "     3. enter the admin's e-mail -> Share. The admin accepts the invite." Yellow
+Say ""
+Say "   Send the admin:  user $user, address $ip, device code $device" Green
+Say "   Admin's Mac:  ./deploy.sh $user@$ip --bot --hub" Green
+if (-not $CheckOnly) {
+    try { Start-Process "https://login.tailscale.com/admin/machines" } catch { Say "   open https://login.tailscale.com/admin/machines in a browser" Yellow }
+}
