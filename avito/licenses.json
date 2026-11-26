@@ -1,5 +1,7 @@
 {
  "format": "bot-bro-licenses",
  "version": 2,
- "licenses": {}
+ "licenses": {
+  "3a7d68129037d2c86a0606e34b9487c38c0485249c9f484cf6b3bd519e714a31": {}
+ }
 }
