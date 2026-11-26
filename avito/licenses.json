@@ -2,6 +2,7 @@
  "format": "bot-bro-licenses",
  "version": 2,
  "licenses": {
-  "3a7d68129037d2c86a0606e34b9487c38c0485249c9f484cf6b3bd519e714a31": {}
+  "3a7d68129037d2c86a0606e34b9487c38c0485249c9f484cf6b3bd519e714a31": {},
+  "ccd7bd360c9d8316543dbc2e4e60e36e0337002eb4c9c8c60f9104801eae3b24": {}
  }
 }
